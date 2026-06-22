@@ -6,6 +6,7 @@ public class PlayOnKeyPress : MonoBehaviour
 {
     private Animator anim;
     private bool isWalking = true; 
+    private bool isWaitingForStick = false; 
 
     public float interactionDistance = 3f; 
     public float circleRadius = 5f;
@@ -17,6 +18,11 @@ public class PlayOnKeyPress : MonoBehaviour
 
     public TextMeshProUGUI dialogueText; 
     public string npcMessage = "Hello traveler!"; 
+    
+    [Header("Stick Quest Settings")]
+    public string thankYouMessage = "Thank you for finding my stick!"; 
+    public Transform stickTransform; 
+    public float stickDeliveryDistance = 10f; 
 
     void Start()
     {
@@ -26,7 +32,10 @@ public class PlayOnKeyPress : MonoBehaviour
 
         GameObject player = GameObject.FindGameObjectWithTag("Player");
 
-        playerTransform = player.transform;
+        if (player != null)
+        {
+            playerTransform = player.transform;
+        }
 
         if (dialogueText != null)
         {
@@ -36,6 +45,7 @@ public class PlayOnKeyPress : MonoBehaviour
 
     void Update()
     {
+        // Controls physical movement in the scene
         if (isWalking)
         {
             currentAngle += Time.deltaTime * walkSpeed;
@@ -62,10 +72,13 @@ public class PlayOnKeyPress : MonoBehaviour
         {
             if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame)
             {
-                if (isWalking)
+                if (isWalking && !isWaitingForStick)
                 {
-                    anim.Play("Talk");
+                    // 1. Fire the Talk trigger
+                    if (anim != null) anim.SetTrigger("Talk");
+                    
                     isWalking = false;
+                    isWaitingForStick = true; 
 
                     transform.LookAt(new Vector3(playerTransform.position.x, transform.position.y, playerTransform.position.z));
                     
@@ -74,17 +87,54 @@ public class PlayOnKeyPress : MonoBehaviour
                         dialogueText.text = npcMessage;
                     }
                 }
-                else
-                {
-                    anim.Play("Walking");
-                    isWalking = true;
-
-                    if (dialogueText != null) 
-                    {
-                        dialogueText.text = "";
-                    }
-                }
             }
+        }
+
+        if (isWaitingForStick && stickTransform != null)
+        {
+            float distanceToStick = Vector3.Distance(transform.position, stickTransform.position);
+
+            if (distanceToStick <= stickDeliveryDistance)
+            {
+                CompleteQuest();
+            }
+        }
+    }
+
+    private void CompleteQuest()
+    {
+        isWaitingForStick = false; 
+        
+        if (dialogueText != null) 
+        {
+            dialogueText.text = thankYouMessage;
+        }
+
+        // 2. Fire the Jump trigger
+        if (anim != null)
+        {
+            anim.SetTrigger("Jump");
+        }
+
+        // Hide the stick object
+        if (stickTransform != null)
+        {
+            stickTransform.gameObject.SetActive(false); 
+        }
+
+        Invoke("ResumeWalkingMath", 1.2f); 
+    }
+
+    private void ResumeWalkingMath()
+    {
+        // We don't need anim.SetTrigger("Walk") here anymore! 
+        // Unity's "Has Exit Time" handles the animation transition for us.
+        
+        isWalking = true; // Unfreezes the NPC's movement script
+
+        if (dialogueText != null) 
+        {
+            dialogueText.text = "";
         }
     }
 }
