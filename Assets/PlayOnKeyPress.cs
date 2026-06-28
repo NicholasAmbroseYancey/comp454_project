@@ -127,10 +127,8 @@ public class PlayOnKeyPress : MonoBehaviour
 
     private void ResumeWalkingMath()
     {
-        // We don't need anim.SetTrigger("Walk") here anymore! 
-        // Unity's "Has Exit Time" handles the animation transition for us.
         
-        isWalking = true; // Unfreezes the NPC's movement script
+        isWalking = true;
 
         if (dialogueText != null) 
         {
